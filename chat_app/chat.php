@@ -173,6 +173,30 @@ $groups = getGroups($user['id']);
         .send-icon:hover {
             color: #303f9f; /* Change color on hover */
         }
+       
+        .sender-message {
+            background-color:#a4e4b2 ; /* Green background */
+            color: #28a745; /* White text color */
+            padding: 10px;
+            margin-left: auto; /* Push sender messages to the right */
+        }
+        /* Style for receiver messages */
+        .receiver-message {
+            background-color: #cce5ff; /* Blue background */
+            color: #007bff; /* Blue text color */
+            padding: 10px;
+            margin-right: auto; /* Push receiver messages to the left */
+        }
+
+        /* Optionally, add some spacing between messages */
+        .message {
+            margin-bottom: 10px;
+        }
+        .status{
+            color:#a4e4b2;
+            font-weight: bold;
+        }
+
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
@@ -187,7 +211,8 @@ $groups = getGroups($user['id']);
             </div>
             <ul class="contact-list-items">
                 <?php foreach ($contacts as $contact): ?>
-                    <li data-id="<?php echo $contact['id']; ?>"><?php echo $contact['username']; ?></li>
+                    <li data-id="<?php echo $contact['id']; ?>"><?php echo $contact['username']; ?>
+                </li>
                 <?php endforeach; ?>
             </ul>
         </div>
@@ -196,6 +221,7 @@ $groups = getGroups($user['id']);
                 <div class="chat-info">
                     <!-- Contact name and status -->
                 </div>
+                <span class="status"></span>
                 <div class="chat-actions"><?php echo $user['username']; ?> <a href="logout.php">(Logout)</a>
                     <!-- Chat actions like video call, etc. -->
                 </div>
@@ -216,7 +242,7 @@ $groups = getGroups($user['id']);
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        $(document).ready(function () {
+       $(document).ready(function () {
     var userId = <?php echo $_SESSION['user_id']; ?>;
             var contactId;
 
@@ -237,6 +263,7 @@ $groups = getGroups($user['id']);
                     },
                     success: function (data) {
                         $('.chat-messages').html(data);
+                        updateContactStatus(contactId);
                     }
                 });
             }
@@ -255,49 +282,108 @@ $groups = getGroups($user['id']);
                 var contactName = $(this).text(); // Get the clicked contact's name
                 updateChatHeader(contactName); // Update chat header with contact's name
                 loadMessages(); // Load messages for the selected contact
+                updateContactStatus(contactId);
             });
 
-            // Click event handler for plane icon (send message)
+            // Click event handler for send button
             $('#send-icon').on('click', function () {
                 var message = $('#message-input').val();
-                if (message.trim() !== '') {
-                    $.ajax({
-                        url: 'messages.php',
-                        type: 'POST',
-                        data: {
-                            user_id: userId,
-                            contact_id: contactId,
-                            message: message
-                        },
-                        success: function () {
-                            loadMessages();
-                            $('#message-input').val('');
-                        }
-                    });
+                var fileInput = $('#file-input').prop('files')[0];
+                console.log(message,fileInput);
+                // Check if either message or file is present
+                if (message.trim() !== '' || fileInput) {
+                    // Send message
+                    sendMessage(userId, contactId, message, fileInput);
                 }
             });
 
-            // Click event handler for link icon (file selection)
-            $('#file-select-icon').on('click', function () {
-                $('#file-input').click(); // Trigger click event on hidden file input
-            });
-
-            // Change event handler for file input
-            $('#file-input').on('change', function () {
-                var fileInput = $(this)[0].files[0];
+            // Function to send message and/or file
+            function sendMessage(senderId, receiverId, message, file) {
                 var formData = new FormData();
-                formData.append('file', fileInput);
+                formData.append('user_id', senderId);
+                formData.append('contact_id', receiverId);
+                formData.append('message', message);
+                if (file) {
+                    console.log("yes file in")
+                    formData.append('file', file);
+                }
+                console.log(formData);
+
                 $.ajax({
-                    url: 'upload.php', // PHP script to handle file upload
+                    url: 'messages.php',
                     type: 'POST',
                     data: formData,
                     contentType: false,
                     processData: false,
                     success: function () {
                         loadMessages();
+                        updateContactStatus(contactId);
+                        $('#message-input').val('');
+                        $('#file-input').val('');
                     }
                 });
+            }
+
+            // Click event handler for link icon (file selection)
+            $('#file-select-icon').on('click', function () {
+                $('#file-input').click(); // Trigger click event on hidden file input
+                console.log($('#file-input'));
             });
+
+//             $('#file-input').on('change', function () {
+//     console.log($(this).val()); // Log the value of the file input
+// });
+// Function to load messages periodically
+    setInterval(loadMessages, 500);
+    setInterval(function () {
+        updateContactStatus(contactId);
+    }, 500);
+    function updateContactStatus(contactId) {
+        $.ajax({
+            url: 'messages.php',
+            type: 'POST',
+            data: { 
+                action: 'getContactCreatedAt',
+                contact_id: contactId 
+            },
+            success: function(response) {
+                 // Parse the response as JSON
+                var responseData = JSON.parse(response);
+                if (responseData.status === 'success') {
+                     $('.chat-header .status').text("");
+                    var createdAt = responseData.created_at;
+                    var statusElement = $('[data-id="' + contactId + '"] .status');
+                    var statusText = getStatusText(createdAt);
+                    statusElement.text(statusText);
+                    $('.chat-header .status').text(statusText);
+                } else {
+                    console.error('Error fetching contact created_at:', responseData.error);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX error:', error);
+            }
+        });
+    }
+function getStatusText(createdAt) {
+    // Logic to calculate time difference and return appropriate status text
+    // For example:
+    var currentTime = new Date();
+    var messageTime = new Date(createdAt);
+    var diffMs = currentTime - messageTime;
+    var diffDays = Math.floor(diffMs / 86400000); // days
+    var diffHrs = Math.floor((diffMs % 86400000) / 3600000); // hours
+    var diffMins = Math.round(((diffMs % 86400000) % 3600000) / 60000); // minutes
+    if (diffDays > 0) {
+        return diffDays + " day" + (diffDays === 1 ? "" : "s") + " ago";
+    } else if (diffHrs > 0) {
+        return diffHrs + " hour" + (diffHrs === 1 ? "" : "s") + " ago";
+    } else if (diffMins > 0) {
+        return diffMins + " minute" + (diffMins === 1 ? "" : "s") + " ago";
+    } else {
+        return "Online";
+    }
+}
         });
 
     </script>
