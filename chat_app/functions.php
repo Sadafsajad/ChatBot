@@ -18,8 +18,21 @@ function getGroups($userId)
 {
     global $conn;
     try {
-        $stmt = $conn->prepare("SELECT * FROM groups WHERE created_by = :user_id");
+        // First, fetch group IDs from group_users table for the given user ID
+        $stmt = $conn->prepare("SELECT group_id FROM group_users WHERE user_id = :user_id");
         $stmt->execute(['user_id' => $userId]);
+        $groupIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // If there are no groups for the user, return an empty array
+        if (empty($groupIds)) {
+            return [];
+        }
+
+        // Use the fetched group IDs to fetch group details from the groups table
+        $placeholders = implode(',', array_fill(0, count($groupIds), '?'));
+        $stmt = $conn->prepare("SELECT * FROM `groups` WHERE id IN ($placeholders)");
+        $stmt->execute($groupIds);
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         // Handle the exception gracefully
@@ -27,6 +40,8 @@ function getGroups($userId)
         return []; // Return an empty array if an error occurs
     }
 }
+
+
 function getMessages($userId, $contactId = null, $groupId = null)
 {
     global $conn;
@@ -43,9 +58,14 @@ function getMessages($userId, $contactId = null, $groupId = null)
 function createGroup($groupName, $createdBy)
 {
     global $conn;
-    $stmt = $conn->prepare("INSERT INTO groups (name, created_by) VALUES (:name, :created_by)");
-    $stmt->execute(['name' => $groupName, 'created_by' => $createdBy]);
-    return $conn->lastInsertId();
+    try {
+        $stmt = $conn->prepare("INSERT INTO `groups` (name, created_by) VALUES (:name, :created_by)");
+        $stmt->execute(['name' => $groupName, 'created_by' => $createdBy]);
+        return $conn->lastInsertId();
+    } catch (PDOException $e) {
+        error_log("Error creating group: " . $e->getMessage());
+        throw $e; // re-throw the exception to be handled elsewhere
+    }
 }
 
 function addUserToGroup($groupId, $userId)

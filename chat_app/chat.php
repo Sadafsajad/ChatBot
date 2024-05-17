@@ -11,6 +11,8 @@ if (!isLoggedIn()) {
 $user = getUserById($_SESSION['user_id']);
 $contacts = getUsers($user['id']);
 $groups = getGroups($user['id']);
+// var_dump($user['id'],$groups);
+// die();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,6 +46,7 @@ $groups = getGroups($user['id']);
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            position: relative;
         }
 
         .contact-list {
@@ -57,6 +60,9 @@ $groups = getGroups($user['id']);
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .contact-search input {
@@ -79,6 +85,20 @@ $groups = getGroups($user['id']);
         }
 
         .contact-list-items li:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .group-list-items{
+            list-style: none;
+        }
+
+        .group-list-items li {
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .group-list-items li:hover {
             background-color: rgba(255, 255, 255, 0.2);
         }
 
@@ -127,7 +147,7 @@ $groups = getGroups($user['id']);
             padding: 10px;
             border-radius: 5px;
             border: none;
-            padding-right: 40px; 
+            padding-right: 40px;
         }
 
         .chat-input button {
@@ -144,75 +164,164 @@ $groups = getGroups($user['id']);
         .chat-input button:hover {
             background-color: #303f9f;
         }
+
         .welcome-message {
-            background-color: #d4edda; /* Light green background */
-            color: #155724; /* Dark green text color */
-            padding: 10px 20px; /* Padding for content */
-            border-radius: 10px; /* Rounded corners */
-            margin: auto; /* Center the message horizontally */
-            margin-top: 20px; /* Add some space at the top */
-            max-width: 80%; /* Limit width to 80% of container */
-        }
-        .file-icon {
-            position: absolute; /* Position the icon */
-            right: 30px; /* Adjust position from the right */
-            top: 50%; /* Center vertically */
-            transform: translateY(-50%); /* Center vertically */
-            color: #999; /* Icon color */
-            cursor: pointer; /* Show cursor on hover */
-        }
-        .send-icon {
-            position: absolute; /* Position the icon */
-            right: 10px; /* Adjust position from the right */
-            top: 50%; /* Center vertically */
-            transform: translateY(-50%); /* Center vertically */
-            color: #3f51b5; /* Icon color */
-            cursor: pointer; /* Show cursor on hover */
-        }
-        .file-icon:hover,
-        .send-icon:hover {
-            color: #303f9f; /* Change color on hover */
-        }
-       
-        .sender-message {
-            background-color:#a4e4b2 ; /* Green background */
-            color: #28a745; /* White text color */
-            padding: 10px;
-            margin-left: auto; /* Push sender messages to the right */
-        }
-        /* Style for receiver messages */
-        .receiver-message {
-            background-color: #cce5ff; /* Blue background */
-            color: #007bff; /* Blue text color */
-            padding: 10px;
-            margin-right: auto; /* Push receiver messages to the left */
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: auto;
+            margin-top: 20px;
+            max-width: 80%;
         }
 
-        /* Optionally, add some spacing between messages */
+        .file-icon {
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            cursor: pointer;
+        }
+
+        .send-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #3f51b5;
+            cursor: pointer;
+        }
+
+        .file-icon:hover,
+        .send-icon:hover {
+            color: #303f9f;
+        }
+
+        .sender-message {
+            background-color: #a4e4b2;
+            color: #28a745;
+            padding: 10px;
+            margin-left: auto;
+        }
+
+        .receiver-message {
+            background-color: #cce5ff;
+            color: #007bff;
+            padding: 10px;
+            margin-right: auto;
+        }
+
         .message {
             margin-bottom: 10px;
         }
-        .status{
-            color:#a4e4b2;
+
+        .status {
+            color: #a4e4b2;
             font-weight: bold;
         }
 
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #create-group-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        #create-group-btn:hover {
+            background-color: #218838;
+        }
+
+        #create-group-submit {
+            background-color: #3f51b5;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        #create-group-submit:hover {
+            background-color: #303f9f;
+        }
+
+        #group-name-input {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
     <div class="chat-container">
         <div class="contact-list">
-            <div class="contact-list-header">Messages</div>
+            <div class="contact-list-header">Messages <button id="create-group-btn">Create Group</button></div>
             <div class="contact-search">
                 <input type="text" placeholder="Search contacts">
             </div>
             <ul class="contact-list-items">
                 <?php foreach ($contacts as $contact): ?>
                     <li data-id="<?php echo $contact['id']; ?>"><?php echo $contact['username']; ?>
-                </li>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <ul class="group-list-items">
+                <?php foreach ($groups as $group): ?>
+                    <li data-id="<?php echo $group['id']; ?>"><?php echo $group['name']; ?></li>
                 <?php endforeach; ?>
             </ul>
         </div>
@@ -223,28 +332,48 @@ $groups = getGroups($user['id']);
                 </div>
                 <span class="status"></span>
                 <div class="chat-actions"><?php echo $user['username']; ?> <a href="logout.php">(Logout)</a>
-                    <!-- Chat actions like video call, etc. -->
                 </div>
             </div>
             <div class="chat-messages">
                 <!-- Messages will be dynamically added here -->
             </div>
             <div class="chat-input">
-                <!-- Input field with link icon for file selection -->
                 <input type="text" id="message-input" placeholder="Type a message...">
                 <i class="fas fa-link file-icon" id="file-select-icon"></i>
-                <!-- File input field (hidden) -->
                 <input type="file" id="file-input" style="display: none;">
-                <!-- Plane icon for sending message -->
                 <i class="fas fa-paper-plane send-icon" id="send-icon"></i>
             </div>
         </div>
     </div>
+    <!-- Modal for entering group name -->
+    <div id="create-group-modal" class="modal" display:none>
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create Group</h2>
+            <!-- <form id="create-group-form"> -->
+                <input type="text" id="group-name-input" placeholder="Enter group name">
+                <button type="button" id="create-group-submit">Create</button>
+            <!-- </form> -->
+        </div>
+    </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-       $(document).ready(function () {
-    var userId = <?php echo $_SESSION['user_id']; ?>;
-            var contactId;
+    
+$(document).ready(function () {
+    
+    const userId = <?php echo $_SESSION['user_id']; ?>;
+    let contactId;
+
+    $('#create-group-btn').on('click', function () {
+        $('#create-group-modal').css('display', 'flex');
+    });
+
+    $('.close').on('click', function () {
+        $('#create-group-modal').css('display', 'none');
+    });
+
+    
+
 
             // Function to display welcome message
             function displayWelcomeMessage() {
@@ -283,6 +412,13 @@ $groups = getGroups($user['id']);
                 updateChatHeader(contactName); // Update chat header with contact's name
                 loadMessages(); // Load messages for the selected contact
                 updateContactStatus(contactId);
+            });
+            $('.group-list-items li').on('click', function () {
+                groupId = $(this).data('id');
+                var groupName = $(this).text(); // Get the clicked contact's name
+                updateChatHeader(groupName); // Update chat header with contact's name
+                loadMessages(); // Load messages for the selected contact
+                updateContactStatus(userId);
             });
 
             // Click event handler for send button
@@ -384,6 +520,20 @@ function getStatusText(createdAt) {
         return "Online";
     }
 }
+        });
+$('#create-group-submit').on('click', function () {  
+    var groupName=$('#group-name-input').val();
+        $.ajax({
+                url: 'groups.php',
+                type: 'POST',
+                data: {
+                    group_name: groupName,
+                    user_id: <?php echo $_SESSION['user_id']; ?>
+                },
+                success: function (data) {
+                    $('#create-group-modal').hide();
+                }
+            });
         });
 
     </script>
